@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:dash_chat_2/dash_chat_2.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -14,6 +15,8 @@ class _HomeState extends State<Home> {
   ChatUser bot = ChatUser(id: '2', firstName: 'Gemini');
   List<ChatMessage> allMessages = [];
   List<ChatUser> typing = [];
+  // final TextEditingController _textController = TextEditingController();
+  // final ImagePicker _picker = ImagePicker();
 
   bool isProcessing = false;
 
@@ -74,10 +77,34 @@ class _HomeState extends State<Home> {
     }
   }
 
+  // Future<void> _pickImage() async {
+  //   final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+  //   if (pickedFile != null) {
+  //     final image = File(pickedFile.path);
+  //     _sendFile(image);
+  //   } else {
+  //     print('No Image Selected');
+  //   }
+  // }
+
+  // void _sendFile(File image) {
+  //   ChatMessage imageMessage = ChatMessage(
+  //       text: '',
+  //       user: mySelf,
+  //       createdAt: DateTime.now(),
+  //       customProperties: {
+  //         'imageUrl': image.path,
+  //       });
+
+  //   setState(() {
+  //     allMessages.insert(0, imageMessage);
+  //   });
+
+  //   //I need to write image request code here
+  // }
+
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-
     return Scaffold(
       appBar: AppBar(title: Text('Gemini Chat'), centerTitle: true),
       body: DashChat(

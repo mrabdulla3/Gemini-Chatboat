@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gemini_chat/Home.dart';
+import 'package:gemini_chat/home.dart';
+import 'package:gemini_chat/splashScreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: Home(),
+      home: SplashScreen(),
     );
   }
 }
