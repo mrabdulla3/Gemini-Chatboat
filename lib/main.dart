@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gemini_chat/home.dart';
 import 'package:gemini_chat/splashScreen.dart';
 
 void main() {
