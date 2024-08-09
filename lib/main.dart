@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gemini_chat/splashScreen.dart';
+import 'package:gemini_chat/splashscreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,11 +13,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Personal Chat',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color.fromARGB(255, 204, 189, 231)),
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+      home: const SplashScreen(),
     );
   }
 }

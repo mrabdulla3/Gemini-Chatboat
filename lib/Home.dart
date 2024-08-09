@@ -1,13 +1,14 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'sidebar.dart';
 
 class Home extends StatefulWidget {
+  const Home({super.key});
   @override
   State<Home> createState() => _HomeState();
 }
@@ -21,16 +22,27 @@ class _HomeState extends State<Home> {
   final TextEditingController _textController = TextEditingController();
   ChatMessage? selectedImageMessage; // To store the image message
 
-  double _value = 0;
-  Color _color = Colors.blue;
   bool _isDarkMode = false;
-
   bool isProcessing = false;
 
-  final url =
+  ChatMessage? lastSentMessage; // To store the last sent message
+
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
+  final _url =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyDVM-eYq7isnRiVznImO3IqnWXy6uIYSDo';
 
   final header = {'Content-Type': 'application/json'};
+
+  void showError(String error) {
+    scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(error),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
 
   Future<void> getData(ChatMessage m) async {
     if (isProcessing) return;
@@ -59,15 +71,11 @@ class _HomeState extends State<Home> {
       ]
     };
 
-    //print(data);
-
     try {
-      var response = await http.post(Uri.parse(url),
+      var response = await http.post(Uri.parse(_url),
           headers: header, body: json.encode(data));
       if (response.statusCode == 200) {
         var result = jsonDecode(response.body);
-
-        // print('result:' + result);
 
         ChatMessage gemini = ChatMessage(
           text: result['candidates'][0]['content']['parts'][0]['text'],
@@ -80,13 +88,13 @@ class _HomeState extends State<Home> {
           typing.remove(bot);
         });
       } else {
-        print("Error Occurred: ${response.body}");
+        showError("Error Occurred: ${response.body}");
         setState(() {
           typing.remove(bot);
         });
       }
     } catch (e) {
-      print("An error occurred: $e");
+      showError("An error occurred: $e");
       setState(() {
         typing.remove(bot);
       });
@@ -114,14 +122,12 @@ class _HomeState extends State<Home> {
             ),
           ],
         );
-        //print(selectedImageMessage!.medias);
       });
     }
   }
 
   void _sendMessage(ChatMessage message) {
     if (_textController.text.isNotEmpty || selectedImageMessage != null) {
-      //print(_textController.text);
       message = ChatMessage(
         text: _textController.text,
         user: mySelf,
@@ -130,11 +136,61 @@ class _HomeState extends State<Home> {
       );
 
       setState(() {
+        lastSentMessage = message; // Store the last sent message
         selectedImageMessage = null;
         _textController.clear();
       });
       getData(message);
     }
+  }
+
+  void copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    scaffoldMessengerKey.currentState?.showSnackBar(const SnackBar(
+      content: Text('Text copied to clipboard'),
+    ));
+  }
+
+  void regenerateResponse() {
+    if (lastSentMessage != null) {
+      getData(lastSentMessage!);
+    }
+  }
+
+  Widget customMessageBuilder(ChatMessage message, ChatMessage? previousMessage,
+      ChatMessage? nextMessage) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          message.text,
+          style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black),
+        ),
+        if (message.user.id == bot.id)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              IconButton(
+                onPressed: () {
+                  copyToClipboard(allMessages.first.text);
+                },
+                icon: const Icon(
+                  Icons.copy_rounded,
+                  size: 18,
+                ),
+              ),
+              IconButton(
+                  onPressed: () {
+                    regenerateResponse();
+                  },
+                  icon: const Icon(
+                    Icons.autorenew_outlined,
+                    size: 19,
+                  ))
+            ],
+          )
+      ],
+    );
   }
 
   @override
@@ -146,11 +202,11 @@ class _HomeState extends State<Home> {
           appBar: AppBar(
             title: Container(
                 decoration: BoxDecoration(
-                    color: Color.fromARGB(255, 91, 85, 85),
+                    color: const Color.fromARGB(255, 91, 85, 85),
                     borderRadius: BorderRadius.circular(20)),
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                      top: 3, bottom: 3, left: 10, right: 10),
+                child: const Padding(
+                  padding:
+                      EdgeInsets.only(top: 3, bottom: 3, left: 10, right: 10),
                   child: Text(
                     'Gemini Chat',
                     style: TextStyle(
@@ -171,9 +227,10 @@ class _HomeState extends State<Home> {
               )
             ],
           ),
-          drawer: AppDrawer(),
+          drawer: const AppDrawer(),
           body: DashChat(
             inputOptions: InputOptions(
+              inputTextStyle: const TextStyle(color: Colors.black),
               textController: _textController,
               trailing: [
                 IconButton(
@@ -183,12 +240,15 @@ class _HomeState extends State<Home> {
               ],
               leading: [
                 if (selectedImageMessage != null)
-                  Container(
+                  SizedBox(
                     height: 50,
                     width: 50,
-                    child: Image.file(
-                      File(selectedImageMessage!.medias![0].url),
-                      fit: BoxFit.cover,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        File(selectedImageMessage!.medias![0].url),
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
               ],
@@ -199,6 +259,9 @@ class _HomeState extends State<Home> {
             onSend: (ChatMessage m) {
               _sendMessage(m);
             },
+            messageOptions: MessageOptions(
+                messageTextBuilder: customMessageBuilder,
+                containerColor: _isDarkMode ? Colors.black : Colors.white),
           ),
         ));
   }

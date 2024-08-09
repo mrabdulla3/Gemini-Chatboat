@@ -38,7 +38,7 @@ dependencies:
   flutter_gemini:
   image_picker:
   dash_chat_2: ^0.0.21
-  http:
+  http: 
 
 dev_dependencies:
   flutter_test:
