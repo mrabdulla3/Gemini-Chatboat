@@ -1,29 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'main.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  final User user;
+  const AppDrawer({super.key, required this.user});
   @override
   Widget build(BuildContext context) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: <Widget>[
-          const DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.blue,
+        children: [
+          UserAccountsDrawerHeader(
+            accountName: Text(user.displayName ?? ""),
+            accountEmail: Text(user.email ?? ""),
+            currentAccountPicture: CircleAvatar(
+              child: Image.asset('assets/person.png'),
             ),
-            child: Text(
-              'Drawer Header',
-              style: TextStyle(
+            otherAccountsPictures: [
+              IconButton(
+                icon: const Icon(Icons.logout),
                 color: Colors.white,
-                fontSize: 24,
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const AuthScreen(),
+                    ),
+                  );
+                },
               ),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.message),
-            title: const Text('Chat History'),
-            onTap: () {},
+            ],
           ),
         ],
       ),

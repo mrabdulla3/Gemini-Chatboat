@@ -6,14 +6,24 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'sidebar.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  final User user;
+  const Home({super.key, required this.user});
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
+  User? user;
+  @override
+  void initState() {
+    super.initState();
+    user = FirebaseAuth.instance.currentUser;
+    //print(user);
+  }
+
   ChatUser mySelf = ChatUser(id: '1', firstName: 'Abdulla');
   ChatUser bot = ChatUser(id: '2', firstName: 'Gemini');
   List<ChatMessage> allMessages = [];
@@ -35,13 +45,21 @@ class _HomeState extends State<Home> {
 
   final header = {'Content-Type': 'application/json'};
 
-  void showError(String error) {
-    scaffoldMessengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(error),
-        backgroundColor: Colors.red,
-      ),
+  void _showChatError(String error) {
+    // Regular expression to match the API key pattern
+    final apiKeyPattern = RegExp(r'AIza[0-9A-Za-z\-_]{35}');
+
+    // Replace the API key with a masked version or remove it completely
+    final safeError = error.replaceAll(apiKeyPattern, '[API_KEY_REDACTED]');
+    ChatMessage errorMessage = ChatMessage(
+      text: "An error occurred: $safeError",
+      user: bot,
+      createdAt: DateTime.now(),
     );
+    setState(() {
+      allMessages.insert(0, errorMessage);
+      typing.remove(bot);
+    });
   }
 
   Future<void> getData(ChatMessage m) async {
@@ -88,13 +106,13 @@ class _HomeState extends State<Home> {
           typing.remove(bot);
         });
       } else {
-        showError("Error Occurred: ${response.body}");
+        _showChatError("Error Occurred: ${response.body}");
         setState(() {
           typing.remove(bot);
         });
       }
     } catch (e) {
-      showError("An error occurred: $e");
+      _showChatError("An error occurred: $e");
       setState(() {
         typing.remove(bot);
       });
@@ -147,7 +165,7 @@ class _HomeState extends State<Home> {
   void copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
     scaffoldMessengerKey.currentState?.showSnackBar(const SnackBar(
-      content: Text('Text copied to clipboard'),
+      content: Text('Text copied'),
     ));
   }
 
@@ -159,14 +177,44 @@ class _HomeState extends State<Home> {
 
   Widget customMessageBuilder(ChatMessage message, ChatMessage? previousMessage,
       ChatMessage? nextMessage) {
+    bool isError = message.text.startsWith("Error:") ||
+        message.text.startsWith("An error occurred:");
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           message.text,
-          style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black),
+          style: TextStyle(
+            color: isError
+                ? Colors.red
+                : (_isDarkMode ? Colors.white : Colors.black),
+          ),
         ),
-        if (message.user.id == bot.id)
+        if (isError)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              IconButton(
+                onPressed: () {
+                  copyToClipboard(allMessages.first.text);
+                },
+                icon: const Icon(
+                  Icons.copy_rounded,
+                  size: 18,
+                ),
+              ),
+              IconButton(
+                  onPressed: () {
+                    regenerateResponse();
+                  },
+                  icon: const Icon(
+                    Icons.autorenew_outlined,
+                    size: 19,
+                  ))
+            ],
+          ),
+        if (message.user.id == bot.id && !isError)
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -196,6 +244,7 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        scaffoldMessengerKey: scaffoldMessengerKey,
         theme: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
         debugShowCheckedModeBanner: false,
         home: Scaffold(
@@ -227,7 +276,7 @@ class _HomeState extends State<Home> {
               )
             ],
           ),
-          drawer: const AppDrawer(),
+          drawer: AppDrawer(user: user!),
           body: DashChat(
             inputOptions: InputOptions(
               inputTextStyle: const TextStyle(color: Colors.black),
@@ -261,7 +310,8 @@ class _HomeState extends State<Home> {
             },
             messageOptions: MessageOptions(
                 messageTextBuilder: customMessageBuilder,
-                containerColor: _isDarkMode ? Colors.black : Colors.white),
+                containerColor:
+                    _isDarkMode ? Colors.black12 : Colors.grey.shade100),
           ),
         ));
   }

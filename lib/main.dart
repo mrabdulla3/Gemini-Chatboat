@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:gemini_chat/splashscreen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'signin_page.dart';
+import 'signup_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -23,23 +31,44 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
+class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _AuthScreenState extends State<AuthScreen> {
+  bool isLogin = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-          title: Text(widget.title),
+      body: Center(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: isLogin ? SignInPage() : SignUpPage(),
         ),
-        body: Container());
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              isLogin = !isLogin;
+            });
+          },
+          child: Text(
+            isLogin
+                ? "Don't have an account? Sign Up"
+                : "Already have an account? Sign In",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.blue.shade400,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
