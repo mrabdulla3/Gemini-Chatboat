@@ -22,19 +22,20 @@ class _HomeState extends State<Home> {
   final FirestoreService _firestoreService = FirestoreService();
   late User user;
   String chatTitle = "Gemini Chat"; // Default title
+  late String chatId; // Local mutable chatId variable
+
   @override
   void initState() {
     super.initState();
     user = widget.user;
+    chatId = widget
+        .chatId; // Initialize the local chatId variable with the provided chatId
     // Fetch chat messages for the provided chatId
     _firestoreService.getMessages(widget.chatId).listen((messages) {
-      //print(messages);
-
       setState(() {
         allMessages = messages;
       });
     });
-    //print(allMessages);
     // Fetch chat title for the provided chatId
     _firestoreService.getChatTitle(widget.chatId).then((title) {
       setState(() {
@@ -57,7 +58,6 @@ class _HomeState extends State<Home> {
 
   bool _isDarkMode = false;
   bool isProcessing = false;
-
   ChatMessage? lastSentMessage; // To store the last sent message
 
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
@@ -115,7 +115,7 @@ class _HomeState extends State<Home> {
     try {
       var response = await http.post(Uri.parse(_url),
           headers: header, body: json.encode(data));
-      //print(response.body);
+
       if (response.statusCode == 200) {
         var result = jsonDecode(response.body);
 
@@ -269,8 +269,11 @@ class _HomeState extends State<Home> {
 
   void _onSend(ChatMessage message) async {
     try {
-      final chatId = widget.chatId;
-
+      // Check if the chatId is null or empty
+      if (chatId == 'default_chat_id' || chatId.isEmpty) {
+        // Create a new chat document and get the new chatId
+        chatId = await _firestoreService.createNewChatDocument();
+      }
       // Extract the first word from the message text
       String firstWord = message.text.split(' ').take(6).join(' ');
       // Check if the chat title is still null or empty
@@ -323,7 +326,6 @@ class _HomeState extends State<Home> {
                         await _firestoreService.createNewChatDocument();
 
                     // Navigate to the Home screen with the new chatId
-
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                           builder: (context) =>

@@ -131,7 +131,6 @@ class AppDrawer extends StatelessWidget {
                           ];
                         }),
                     onTap: () {
-                      // Navigate to the chat screen for the selected chat
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => Home(

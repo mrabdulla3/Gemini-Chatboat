@@ -26,7 +26,7 @@ class FirestoreService {
   // Create a new chat document
   Future<String> createNewChatDocument() async {
     final newChatDoc = await _db.collection('chats').add({
-      'title': null, // Initialize title as null
+      'title': null,
       'messages': [],
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -38,9 +38,8 @@ class FirestoreService {
   Future<void> saveMessageToList(ChatMessage message, String chatId) async {
     try {
       // If no chatId is provided, create a new chat document
-      if (chatId == null || chatId.isEmpty) {
-        chatId =
-            await createNewChatDocument(); // Call the method to create a new chat document
+      if (chatId.isEmpty) {
+        chatId = await createNewChatDocument();
       }
 
       // Reference to the chat document
