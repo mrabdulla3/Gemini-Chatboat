@@ -9,8 +9,11 @@ The Gemini Chat Application is a real-time chat app built with Flutter, using Fi
 Features:
 
 User Authentication: Users can sign up and log in using Firebase Authentication.
+
 Real-Time Chat: Exchange messages with Gemini in real-time.
+
 Image Upload: Users can upload images to the chat.
+
 Chat History: View past messages and interactions.
 Dark Mode: Toggle between light and dark themes.
 Chat Document Management: Automatically create and manage chat documents in Firestore.
