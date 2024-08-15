@@ -7,22 +7,45 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'sidebar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'firestore_services.dart';
+import 'package:logger/logger.dart';
 
 class Home extends StatefulWidget {
   final User user;
-  const Home({super.key, required this.user});
+  final String chatId;
+  const Home({super.key, required this.user, required this.chatId});
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  User? user;
+  final FirestoreService _firestoreService = FirestoreService();
+  late User user;
+  String chatTitle = "Gemini Chat"; // Default title
   @override
   void initState() {
     super.initState();
-    user = FirebaseAuth.instance.currentUser;
-    //print(user);
+    user = widget.user;
+    // Fetch chat messages for the provided chatId
+    _firestoreService.getMessages(widget.chatId).listen((messages) {
+      //print(messages);
+
+      setState(() {
+        allMessages = messages;
+      });
+    });
+    //print(allMessages);
+    // Fetch chat title for the provided chatId
+    _firestoreService.getChatTitle(widget.chatId).then((title) {
+      setState(() {
+        if (title != null && title.isNotEmpty) {
+          chatTitle = title; // Update chat title if available
+        }
+      });
+    });
   }
+
+  final Logger _logger = Logger();
 
   ChatUser mySelf = ChatUser(id: '1', firstName: 'Abdulla');
   ChatUser bot = ChatUser(id: '2', firstName: 'Gemini');
@@ -41,7 +64,7 @@ class _HomeState extends State<Home> {
       GlobalKey<ScaffoldMessengerState>();
 
   final _url =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyDVM-eYq7isnRiVznImO3IqnWXy6uIYSDo';
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyCU_Su_IN7jAgbvj1Pfc2fBQIqDV2V5F2Y';
 
   final header = {'Content-Type': 'application/json'};
 
@@ -92,6 +115,7 @@ class _HomeState extends State<Home> {
     try {
       var response = await http.post(Uri.parse(_url),
           headers: header, body: json.encode(data));
+      //print(response.body);
       if (response.statusCode == 200) {
         var result = jsonDecode(response.body);
 
@@ -105,6 +129,7 @@ class _HomeState extends State<Home> {
           allMessages.insert(0, gemini);
           typing.remove(bot);
         });
+        _onSend(gemini);
       } else {
         _showChatError("Error Occurred: ${response.body}");
         setState(() {
@@ -158,6 +183,7 @@ class _HomeState extends State<Home> {
         selectedImageMessage = null;
         _textController.clear();
       });
+      _onSend(message); // Send the message
       getData(message);
     }
   }
@@ -241,6 +267,30 @@ class _HomeState extends State<Home> {
     );
   }
 
+  void _onSend(ChatMessage message) async {
+    try {
+      final chatId = widget.chatId;
+
+      // Extract the first word from the message text
+      String firstWord = message.text.split(' ').take(6).join(' ');
+      // Check if the chat title is still null or empty
+      if (chatTitle == "Gemini Chat") {
+        // Update the chat title with the first word of the first message
+        await _firestoreService.updateChatTitle(chatId, firstWord);
+
+        // Update the local state
+        setState(() {
+          chatTitle = firstWord;
+        });
+      }
+      // Save the message to Firestore
+      await _firestoreService.saveMessageToList(message, chatId);
+      // Handle any additional UI updates or state changes here
+    } catch (e) {
+      _logger.e("Error sending message: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -267,6 +317,21 @@ class _HomeState extends State<Home> {
             centerTitle: true,
             actions: [
               IconButton(
+                  onPressed: () async {
+                    // Create a new chat document
+                    String newChatId =
+                        await _firestoreService.createNewChatDocument();
+
+                    // Navigate to the Home screen with the new chatId
+
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              Home(user: widget.user, chatId: newChatId)),
+                    );
+                  },
+                  icon: const Icon(Icons.messenger_outline_sharp)),
+              IconButton(
                 onPressed: () {
                   setState(() {
                     _isDarkMode = !_isDarkMode;
@@ -276,7 +341,7 @@ class _HomeState extends State<Home> {
               )
             ],
           ),
-          drawer: AppDrawer(user: user!),
+          drawer: AppDrawer(user: user),
           body: DashChat(
             inputOptions: InputOptions(
               inputTextStyle: const TextStyle(color: Colors.black),
@@ -303,7 +368,7 @@ class _HomeState extends State<Home> {
               ],
             ),
             typingUsers: typing,
-            messages: allMessages,
+            messages: allMessages.reversed.toList(),
             currentUser: mySelf,
             onSend: (ChatMessage m) {
               _sendMessage(m);

@@ -46,7 +46,7 @@ class _AuthScreenState extends State<AuthScreen> {
       body: Center(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          child: isLogin ? SignInPage() : SignUpPage(),
+          child: isLogin ? const SignInPage() : const SignUpPage(),
         ),
       ),
       bottomNavigationBar: Padding(

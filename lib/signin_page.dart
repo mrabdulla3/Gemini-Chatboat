@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:logger/logger.dart';
 import 'forgotpassword.dart';
 import 'home.dart';
 
@@ -17,35 +19,64 @@ class _SignInPageState extends State<SignInPage> {
   bool rememberMe = false;
   bool _paaswordVisible = false;
 
+  final Logger _logger = Logger();
+
   TextEditingController mailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
   final _formkey = GlobalKey<FormState>();
+
+  Future<String?> _getChatId(String uid) async {
+    try {
+      DocumentSnapshot doc =
+          await FirebaseFirestore.instance.collection('chats').doc(uid).get();
+
+      if (doc.exists) {
+        return doc.get('chatId') as String?;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      _logger.e('Error retrieving chatId: $e');
+      return null;
+    }
+  }
 
   userLogin() async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (context) => Home(user: userCredential.user!)));
+      // Fetch chatId from Firestore
+      String chatId = await _getChatId(userCredential.user!.uid) ?? "";
+      if (mounted) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => Home(
+                      user: userCredential.user!,
+                      chatId: chatId,
+                    )));
+      }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            backgroundColor: Colors.orangeAccent,
-            content: Text(
-              "No User Found for that Email",
-              style: TextStyle(fontSize: 18.0),
-            )));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              backgroundColor: Colors.orangeAccent,
+              content: Text(
+                "No User Found for that Email",
+                style: TextStyle(fontSize: 18.0),
+              )));
+        }
       } else if (e.code == 'wrong-password') {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            backgroundColor: Colors.orangeAccent,
-            content: Text(
-              "Wrong Password Provided by User",
-              style: TextStyle(fontSize: 18.0),
-            )));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              backgroundColor: Colors.orangeAccent,
+              content: Text(
+                "Wrong Password Provided by User",
+                style: TextStyle(fontSize: 18.0),
+              )));
+        }
       }
     }
   }
@@ -67,7 +98,7 @@ class _SignInPageState extends State<SignInPage> {
             await _auth.signInWithCredential(credential);
         return userCredential.user;
       } on FirebaseAuthException catch (e) {
-        // print(e.message);
+        _logger.e(e.message);
       }
     }
     return null;

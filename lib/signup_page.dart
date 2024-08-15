@@ -16,47 +16,51 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _passwordVisible = false;
 
   TextEditingController nameController = TextEditingController();
-
   TextEditingController mailController = TextEditingController();
-
   TextEditingController passwordController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
 
   registration() async {
-    if (password != null &&
-        nameController.text != "" &&
-        mailController.text != "") {
+    if (nameController.text != "" && mailController.text != "") {
       try {
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(email: email, password: password);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-          "Registered Successfully",
-          style: TextStyle(fontSize: 20.0),
-        )));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+            "Registered Successfully",
+            style: TextStyle(fontSize: 20.0),
+          )));
+        }
         // ignore: use_build_context_synchronously
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => AppDrawer(
-                      user: userCredential.user!,
-                    )));
+        if (mounted) {
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => AppDrawer(
+                        user: userCredential.user!,
+                      )));
+        }
       } on FirebaseAuthException catch (e) {
         if (e.code == 'weak-password') {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              backgroundColor: Colors.orangeAccent,
-              content: Text(
-                "Password Provided is too Weak",
-                style: TextStyle(fontSize: 18.0),
-              )));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                backgroundColor: Colors.orangeAccent,
+                content: Text(
+                  "Password Provided is too Weak",
+                  style: TextStyle(fontSize: 18.0),
+                )));
+          }
         } else if (e.code == "email-already-in-use") {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              backgroundColor: Colors.orangeAccent,
-              content: Text(
-                "Account Already exists",
-                style: TextStyle(fontSize: 18.0),
-              )));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                backgroundColor: Colors.orangeAccent,
+                content: Text(
+                  "Account Already exists",
+                  style: TextStyle(fontSize: 18.0),
+                )));
+          }
         }
       }
     }
