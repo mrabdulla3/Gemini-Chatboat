@@ -88,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen> {
           child: SizedBox(
             height: 250,
             width: 250,
-            child: Image.asset('assets/icon.webp'),
+            child: Image.asset('assets/icon.png'),
           ),
         ),
       ),
