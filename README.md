@@ -54,3 +54,7 @@ Contributions are welcome! Please open an issue or submit a pull request with an
 
 Screenshot:
 
+![IMG_20240815_133757](https://github.com/user-attachments/assets/8d887e79-5f99-4032-ba44-b85d94a5a903)
+
+
+![IMG_20240815_133857](https://github.com/user-attachments/assets/869ae153-01f2-4767-8d9d-5deb7c13f9ac)
